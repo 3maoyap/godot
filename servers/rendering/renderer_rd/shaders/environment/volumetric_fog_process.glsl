@@ -210,6 +210,8 @@ layout(set = 0, binding = 19) uniform texture2DArray sky_texture;
 #else
 layout(set = 0, binding = 19) uniform texture2D sky_texture;
 #endif
+layout(set = 0, binding = 20) uniform texture2D decal_atlas_srgb;
+layout(set = 0, binding = 21) uniform sampler decal_sampler;
 #endif // MODE_COPY
 
 float get_depth_at_pos(float cell_depth_size, int z) {
@@ -506,7 +508,30 @@ void main() {
 
 							float depth = texture(sampler2D(shadow_atlas, linear_sampler), pos.xy).r;
 
-							shadow_attenuation = mix(1.0 - omni_lights.data[light_index].shadow_opacity, 1.0, exp(min(0.0, (pos.z - depth)) / omni_lights.data[light_index].inv_radius * INV_FOG_FADE));
+							// shadow_attenuation = mix(1.0 - omni_lights.data[light_index].shadow_opacity, 1.0, exp(min(0.0, (pos.z - depth)) / omni_lights.data[light_index].inv_radius * INV_FOG_FADE));
+							shadow_attenuation = step(depth, pos.z);
+
+						}
+						// Has projector set.
+						if (omni_lights.data[light_index].projector_rect != vec4(0.0)) {
+							vec3 local_vert = (omni_lights.data[light_index].shadow_matrix * vec4(view_pos, 1.0)).xyz;
+							local_vert = normalize(local_vert);
+
+							vec4 atlas_rect = omni_lights.data[light_index].projector_rect;
+
+							if (local_vert.z >= 0.0) {
+								atlas_rect.y += atlas_rect.w;
+							}
+
+							local_vert.z = 1.0 + abs(local_vert.z);
+
+							local_vert.xy /= local_vert.z;
+							local_vert.xy = local_vert.xy * 0.5 + 0.5;
+							vec2 proj_uv = local_vert.xy * atlas_rect.zw;
+
+							vec4 proj = textureLod(sampler2D(decal_atlas_srgb, decal_sampler), proj_uv + atlas_rect.xy, 0.0);
+
+							light *= proj.rgb * proj.a;
 						}
 						total_light += light * attenuation * shadow_attenuation * henyey_greenstein(dot(normalize(light_pos - view_pos), normalize(view_pos)), params.phase_g) * omni_lights.data[light_index].volumetric_fog_energy;
 					}
@@ -570,7 +595,20 @@ void main() {
 
 							float depth = texture(sampler2D(shadow_atlas, linear_sampler), pos.xy).r;
 
-							shadow_attenuation = mix(1.0 - spot_lights.data[light_index].shadow_opacity, 1.0, exp(min(0.0, (pos.z - depth)) / spot_lights.data[light_index].inv_radius * INV_FOG_FADE));
+							// shadow_attenuation = mix(1.0 - spot_lights.data[light_index].shadow_opacity, 1.0, exp(min(0.0, (pos.z - depth)) / spot_lights.data[light_index].inv_radius * INV_FOG_FADE));
+							shadow_attenuation = step(depth, pos.z);
+						}
+						// Has projector set.
+						if (spot_lights.data[light_index].projector_rect != vec4(0.0)) {
+							vec4 v = vec4(view_pos, 1.0);
+
+							vec4 projector_splane = (spot_lights.data[light_index].shadow_matrix * v);
+							projector_splane /= projector_splane.w;
+
+							vec2 proj_uv = projector_splane.xy * spot_lights.data[light_index].projector_rect.zw;
+							vec4 proj = textureLod(sampler2D(decal_atlas_srgb, decal_sampler), proj_uv + spot_lights.data[light_index].projector_rect.xy, 0.0);
+
+							light *= proj.rgb * proj.a;
 						}
 						total_light += light * attenuation * shadow_attenuation * henyey_greenstein(dot(normalize(light_rel_vec), normalize(view_pos)), params.phase_g) * spot_lights.data[light_index].volumetric_fog_energy;
 					}
