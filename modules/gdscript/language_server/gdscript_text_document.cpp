@@ -329,7 +329,7 @@ Dictionary GDScriptTextDocument::resolve(const Dictionary &p_params) {
 		}
 	}
 
-	if (item.kind == LSP::CompletionItemKind::Method) {
+	if (item.kind == LSP::CompletionItemKind::Method || item.kind == LSP::CompletionItemKind::Text) {
 		bool is_trigger_character = params.context.triggerKind == LSP::CompletionTriggerKind::TriggerCharacter;
 		bool is_quote_character = params.context.triggerCharacter == "\"" || params.context.triggerCharacter == "'";
 

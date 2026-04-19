@@ -100,7 +100,7 @@ bool MeshInstance3D::_get(const StringName &p_name, Variant &r_ret) const {
 
 void MeshInstance3D::_get_property_list(List<PropertyInfo> *p_list) const {
 	for (uint32_t i = 0; i < blend_shape_tracks.size(); i++) {
-		p_list->push_back(PropertyInfo(Variant::FLOAT, vformat("blend_shapes/%s", String(mesh->get_blend_shape_name(i))), PROPERTY_HINT_RANGE, "-1,1,0.00001"));
+		p_list->push_back(PropertyInfo(Variant::FLOAT, vformat("blend_shapes/%s", String(mesh->get_blend_shape_name(i))), PROPERTY_HINT_RANGE, "-1,1,0.00001,or_greater,or_less"));
 	}
 	if (mesh.is_valid()) {
 		for (int i = 0; i < mesh->get_surface_count(); i++) {
